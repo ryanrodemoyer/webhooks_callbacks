@@ -4,11 +4,13 @@ using System.Threading.Tasks;
 using bizlogic;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.SpaServices.Webpack;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using website.Controllers;
 
 namespace website
@@ -25,6 +27,8 @@ namespace website
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDistributedMemoryCache();
+
             // Add framework services.
             services.AddMvc(options =>
                 {
@@ -32,8 +36,17 @@ namespace website
                     options.InputFormatters.Insert(0, new JsonAsStringInputFormatter());
                 })
                 .SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
-            
-            services.AddSingleton<IWeatherReadingsProvider, InMemoryWeatherReadingsProvider>();
+
+            services.AddSession(options =>
+            {
+                options.Cookie.Name = ".Webhooks.Session";
+                options.IdleTimeout = TimeSpan.FromMinutes(20d);
+            });
+
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
+            //services.AddSingleton<IWeatherReadingsProvider, InMemoryWeatherReadingsProvider>();
+            services.AddSingleton<IWeatherReadingsProvider, SessionWeatherReadingsProvider>();
             services.AddSingleton<IHMACHasher, HMACSha256Hasher>();
             services.AddSingleton<ISecretRetriever, EnvVarSecretRetriever>();
             services.AddSingleton<IBinaryFormatter, Base64BinaryFormatter>();
@@ -59,6 +72,8 @@ namespace website
             }
 
             app.UseStaticFiles();
+
+            app.UseSession();
 
             app.UseMvc(routes =>
             {

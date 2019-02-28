@@ -30,24 +30,7 @@
       </div>
       <h3>Payload</h3>
       <div class="form-group">
-        <label>Device Id</label>
-        <input class="form-control" type="number" id="deviceId" v-model="payload.deviceId" />
-      </div>
-      <div class="form-group">
-        <label>Temperature</label>
-        <input class="form-control" type="number" id="temperature" v-model="payload.temperature" />
-      </div>
-      <div class="form-group">
-        <label>Humidity</label>
-        <input class="form-control" type="number" id="humidity" v-model="payload.humidity" />
-      </div>
-      <div class="form-group">
-        <label>Barometer</label>
-        <input class="form-control" type="number" id="barometer" v-model="payload.barometer" />
-      </div>
-      <div class="form-group">
-        <label>Windspeed</label>
-        <input class="form-control" type="number" id="windspeed" v-model="payload.windspeed" />
+        <textarea class="form-control" id="payload" v-model="payload" rows="10"></textarea>
       </div>
 
       <button class="btn btn-primary" v-on:click="generateWebhook">Generate Webhook</button>
@@ -90,9 +73,6 @@
 
 <script>
   export default {
-    computed: {
-    },
-
     data() {
       return {
         weatherEvents: null,
@@ -104,38 +84,35 @@
           includeHeader: true,
           header: "x-payload-sig"
         },
-        payload: {
-          //deviceId: null,
-          //temperature: 17,
-          //humidity: 87,
-          //barometer: 29,
-          //windspeed: 3,
-          timestamp: new Date()
-        }
+        payload: ""
       }
     },
 
     methods: {
       setValues() {
-        this.$set(this.payload, 'deviceId', Math.floor(Math.random() * 1000));
-        this.payload.temperature = Math.floor(Math.random() * 100);
-        this.payload.humidity = Math.floor(Math.random() * 100);
-        this.payload.barometer = Math.floor(Math.random() * 100);  
-        this.payload.windspeed = Math.floor(Math.random() * 150);
-        this.timestamp = new Date();
+        const temp = {
+          deviceId: Math.floor(Math.random() * 1000),
+          temperature: Math.floor(Math.random() * 100),
+          humidity: Math.floor(Math.random() * 100),
+          barometer: Math.floor(Math.random() * 100),
+          windspeed: Math.floor(Math.random() * 150),
+          timestamp: new Date()
+        };
+
+        this.$set(this, 'payload', JSON.stringify(temp));
       },
       async generateWebhook() {
         try {
+          //const p = JSON.parse(this.payload);
           let response = await this.$http.post(`/api/callbacks/weather`, this.payload, this.submitHeaders);
           this.ui.apiResponse = response;
 
           this.weatherEvents.push(response.data);
 
-          this.payload = {}
-          this.$set(this.payload, 'timestamp', new Date());
+          this.payload = "";
         }
         catch (err) {
-          this.ui.apiResponse = JSON.stringify(err, null, 2);
+          this.ui.apiResponse = err;
         }
       },
       async loadPage(page) {
@@ -167,11 +144,11 @@
         return extra;
       },
       "computedHash": function () {
-        const p = JSON.stringify(this.payload);
+        //const p = JSON.stringify(this.payload);
         
         const sha = new this.$jssha("SHA-256", "TEXT");
         sha.setHMACKey(this.settings.secret, "TEXT");
-        sha.update(p);
+        sha.update(this.payload);
 
         let encoded = sha.getHMAC("B64");
         return encoded;

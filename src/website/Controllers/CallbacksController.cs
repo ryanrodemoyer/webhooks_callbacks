@@ -21,11 +21,13 @@ namespace website.Controllers
         private readonly ISignatureRetriever _signatureRetriever;
 
         public CallbacksController(
+            IWeatherReadingsProvider weatherReadingsProvider,
             ISecretRetriever secretRetriever
             , IBinaryFormatter binaryFormatter
             , IHMACHasher hmacHasher
             , ISignatureRetriever signatureRetriever)
         {
+            _weatherReadingsProvider = weatherReadingsProvider;
             _secretRetriever = secretRetriever;
             _binaryFormatter = binaryFormatter;
             _hmacHasher = hmacHasher;

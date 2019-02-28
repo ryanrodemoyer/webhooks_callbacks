@@ -16,27 +16,6 @@ namespace bizlogic
         }
     }
 
-    public class WeatherReading : WeatherReadingInput
-    {
-        public int Id { get; set; }
-
-        public static WeatherReading FromInput(int id, WeatherReadingInput weatherReadingInput)
-        {
-            var wr = new WeatherReading
-            {
-                Id = id,
-                DeviceId = weatherReadingInput.DeviceId,
-                Temperature = weatherReadingInput.Temperature,
-                Timestamp = weatherReadingInput.Timestamp,
-                Barometer = weatherReadingInput.Barometer,
-                Humidity = weatherReadingInput.Humidity,
-                Windspeed = weatherReadingInput.Windspeed
-            };
-
-            return wr;
-        }
-    }
-
     public static class WeatherReadingInputValidator
     {
         public static bool Validate(WeatherReadingInput input)
@@ -62,6 +41,27 @@ namespace bizlogic
             }
 
             return true;
+        }
+    }
+
+    public class WeatherReading : WeatherReadingInput
+    {
+        public int Id { get; set; }
+
+        public static WeatherReading FromInput(int id, WeatherReadingInput weatherReadingInput)
+        {
+            var wr = new WeatherReading
+            {
+                Id = id,
+                DeviceId = weatherReadingInput.DeviceId,
+                Temperature = weatherReadingInput.Temperature,
+                Timestamp = weatherReadingInput.Timestamp,
+                Barometer = weatherReadingInput.Barometer,
+                Humidity = weatherReadingInput.Humidity,
+                Windspeed = weatherReadingInput.Windspeed
+            };
+
+            return wr;
         }
     }
 
