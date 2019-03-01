@@ -33,15 +33,22 @@
         <textarea class="form-control" id="payload" v-model="payload" rows="10"></textarea>
       </div>
 
+      <div>
+        <p><strong>Status Code</strong> {{ ui.responseStatusCode }}</p>
+        <p><strong>Message</strong> {{ ui.responseMessage}}</p>
+
+      </div>
+
       <button class="btn btn-primary" v-on:click="generateWebhook">Generate Webhook</button>
       <button class="btn btn-info" v-on:click="setValues">Set Values</button>
+
 
       <!--<h3>Response</h3>
   <pre style="background-color: grey; border: solid 1px black; padding: 5px;">{{ui.apiResponse}}</pre>-->
 
       <h2>Received Webhooks</h2>
 
-      <table class="table">
+      <table class="table">        
         <thead class="bg-dark text-white">
           <tr>
             <th>Id</th>
@@ -66,6 +73,7 @@
         </tbody>
       </table>
 
+      <h2>Vue $data</h2>
       <pre>{{this.$data}}</pre>
     </template>
   </div>
@@ -78,6 +86,8 @@
         weatherEvents: null,
         ui: {
           apiResponse: "Click 'Generate Webhook' to submit.",
+          responseStatusCode: "",
+          responseMessage: ""
         },
         settings: {
           secret: "MaryHadALittleLambLittleLamb",
@@ -106,6 +116,8 @@
           //const p = JSON.parse(this.payload);
           let response = await this.$http.post(`/api/callbacks/weather`, this.payload, this.submitHeaders);
           this.ui.apiResponse = response;
+          this.ui.responseStatusCode = response.status;
+          this.ui.responseMessage = response.data;
 
           this.weatherEvents.push(response.data);
 
@@ -113,6 +125,9 @@
         }
         catch (err) {
           this.ui.apiResponse = err;
+
+          this.ui.responseStatusCode = err.response.status;
+          this.ui.responseMessage = err.response.data;
         }
       },
       async loadPage(page) {

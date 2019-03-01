@@ -20,6 +20,11 @@ namespace bizlogic
     {
         public static bool Validate(WeatherReadingInput input)
         {
+            if (input == null)
+            {
+                return false;
+            }
+
             if (input.DeviceId == 0)
             {
                 return false;

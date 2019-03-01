@@ -17,17 +17,37 @@ namespace website
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        private readonly IConfiguration _configuration;
+        private readonly IHostingEnvironment _hostingEnvironment;
+
+        public Startup(
+            IConfiguration configuration
+            , IHostingEnvironment hostingEnvironment)
         {
-            Configuration = configuration;
+            _configuration = configuration;
+            _hostingEnvironment = hostingEnvironment;
         }
 
-        public IConfiguration Configuration { get; }
-
         // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices(IServiceCollection services)
+        public void ConfigureServices(
+            IServiceCollection services)
         {
-            services.AddDistributedMemoryCache();
+            if (_hostingEnvironment.IsDevelopment())
+            {
+                services.AddDistributedRedisCache(options =>
+                {
+                    options.Configuration = "localhost";
+                    options.InstanceName = "WebhookInstance";
+                });
+            }
+            else
+            {
+                services.AddDistributedRedisCache(options =>
+                {
+                    options.Configuration = _configuration["AZURE_REDIS_CACHE"];
+                    options.InstanceName = "WebhookInstance";
+                });
+            }
 
             // Add framework services.
             services.AddMvc(options =>
@@ -45,10 +65,18 @@ namespace website
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
-            //services.AddSingleton<IWeatherReadingsProvider, InMemoryWeatherReadingsProvider>();
             services.AddSingleton<IWeatherReadingsProvider, SessionWeatherReadingsProvider>();
             services.AddSingleton<IHMACHasher, HMACSha256Hasher>();
-            services.AddSingleton<ISecretRetriever, EnvVarSecretRetriever>();
+
+            if (_hostingEnvironment.IsDevelopment())
+            {
+                services.AddSingleton<ISecretRetriever, EnvVarSecretRetriever>();
+            }
+            else
+            {
+                services.AddSingleton<ISecretRetriever, ConfigurationSecretRetriever>();
+            }
+
             services.AddSingleton<IBinaryFormatter, Base64BinaryFormatter>();
             services.AddSingleton<ISignatureRetriever, HttpHeaderSignatureRetriever>();
         }
@@ -85,6 +113,22 @@ namespace website
                     name: "spa-fallback",
                     defaults: new { controller = "Home", action = "Index" });
             });
+        }
+    }
+
+    public class ConfigurationSecretRetriever : ISecretRetriever
+    {
+        private readonly IConfiguration _configuration;
+
+        public ConfigurationSecretRetriever(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
+        public string GetSecret()
+        {
+            string secret = _configuration["WEBHOOKS_SHARED_SECRET"];
+            return secret;
         }
     }
 
