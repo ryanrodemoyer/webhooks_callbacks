@@ -21,6 +21,10 @@
         <label for="headerName">Header Name</label>
         <input class="form-control" type="text" name="headerName" placeholder="name for the header" v-model="settings.header" />
       </div>
+      <div class="form-group">
+        <label for="callbackEndpoint">Callback Endpoint</label>
+        <input class="form-control" type="text" name="callbackEndpoint" v-model="settings.callbackEndpoint" />
+      </div>
 
       <h2>Create Webhook</h2>
       <h3>Validation Hash</h3>
@@ -41,10 +45,6 @@
 
       <button class="btn btn-primary" v-on:click="generateWebhook">Generate Webhook</button>
       <button class="btn btn-info" v-on:click="setValues">Set Values</button>
-
-
-      <!--<h3>Response</h3>
-  <pre style="background-color: grey; border: solid 1px black; padding: 5px;">{{ui.apiResponse}}</pre>-->
 
       <h2>Received Webhooks</h2>
 
@@ -92,7 +92,9 @@
         settings: {
           secret: "MaryHadALittleLambLittleLamb",
           includeHeader: true,
-          header: "x-payload-sig"
+          header: "x-payload-sig",
+          callbackEndpoint: "",
+          defaultEndpoint: "/api/callbacks/weather"
         },
         payload: ""
       }
@@ -114,7 +116,7 @@
       async generateWebhook() {
         try {
           //const p = JSON.parse(this.payload);
-          let response = await this.$http.post(`/api/callbacks/weather`, this.payload, this.submitHeaders);
+          let response = await this.$http.post(this.settings.callbackEndpoint, this.payload, this.submitHeaders);
           this.ui.apiResponse = response;
           this.ui.responseStatusCode = response.status;
           this.ui.responseMessage = response.data;
@@ -124,10 +126,16 @@
           this.payload = "";
         }
         catch (err) {
-          this.ui.apiResponse = err;
+          if (err) {
+            this.ui.apiResponse = err;
 
-          this.ui.responseStatusCode = err.response.status;
-          this.ui.responseMessage = err.response.data;
+            this.ui.responseStatusCode = err.response.status;
+            this.ui.responseMessage = err.response.data;
+          }
+          else {
+            this.ui.responseStatusCode = -1;
+            this.ui.responseMessage = "unknown. possibly CORS/CORB.";
+          }
         }
       },
       async loadPage(page) {
@@ -153,7 +161,10 @@
         let extra = null;
         if (this.settings.includeHeader) {
           extra = {
-            headers: { [this.settings.header]: this.computedHash }
+            headers: {
+              [this.settings.header]: this.computedHash,
+              "Content-Type": "application/json"
+            }
           }
         }
         return extra;
@@ -187,7 +198,11 @@
     //},
 
     async created() {
-      this.loadPage(1)
+      this.loadPage(1);
+
+      this.settings.callbackEndpoint = `${window.location.origin}${this.settings.defaultEndpoint}`;
+
+      //console.log(window.location);
     }
   }
 </script>
