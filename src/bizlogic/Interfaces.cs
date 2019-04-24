@@ -1,16 +1,22 @@
 ﻿using Microsoft.Extensions.Primitives;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace bizlogic
 {
-    public interface ISecretRetriever
+    public interface ISecureKeyGenerator
     {
-        string GetSecret();
+        string GetKey();
+    }
+
+    public interface ISecretRetrieverAsync
+    {
+        Task<string> GetSecretAsync();
     }
 
     public interface IHMACHasher
     {
-        string GenerateHash(string message, ISecretRetriever secretRetriever, IBinaryFormatter binaryFormatter);
+        string GenerateHash(string message, ISecretRetrieverAsync secretRetrieverAsync, IBinaryFormatter binaryFormatter);
     }
 
     public interface IBinaryFormatter

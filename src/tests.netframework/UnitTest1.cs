@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using bizlogic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using TypeMock.ArrangeActAssert;
@@ -11,8 +12,8 @@ namespace tests.netframework
         [TestMethod]
         public void PlainText_Hash_ToBase64_Validation()
         {
-            var secret = Isolate.Fake.Instance<ISecretRetriever>();
-            Isolate.WhenCalled(() => secret.GetSecret()).WillReturn("TestingSecret898989");
+            var secret = Isolate.Fake.Instance<ISecretRetrieverAsync>();
+            Isolate.WhenCalled(() => secret.GetSecretAsync()).WillReturn(Task.FromResult("TestingSecret898989"));
 
             var hasher = new HMACSha256Hasher();
             string result = hasher.GenerateHash("Hello World!!", secret, new Base64BinaryFormatter());
@@ -23,8 +24,8 @@ namespace tests.netframework
         [TestMethod]
         public void Test02()
         {
-            var secret = Isolate.Fake.Instance<ISecretRetriever>();
-            Isolate.WhenCalled(() => secret.GetSecret()).WillReturn("Rock'em Sock'em Robots");
+            var secret = Isolate.Fake.Instance<ISecretRetrieverAsync>();
+            Isolate.WhenCalled(() => secret.GetSecretAsync()).WillReturn(Task.FromResult("Rock'em Sock'em Robots"));
 
             var hasher = new HMACSha256Hasher();
             string result = hasher.GenerateHash("", secret, new Base64BinaryFormatter());
@@ -36,8 +37,8 @@ namespace tests.netframework
         [TestMethod]
         public void Test05()
         {
-            var secret = Isolate.Fake.Instance<ISecretRetriever>();
-            Isolate.WhenCalled(() => secret.GetSecret()).WillReturn("");
+            var secret = Isolate.Fake.Instance<ISecretRetrieverAsync>();
+            Isolate.WhenCalled(() => secret.GetSecretAsync()).WillReturn(Task.FromResult(""));
 
             var hasher = new HMACSha256Hasher();
             string result = hasher.GenerateHash("my non-secret message to verify", secret, new Base64BinaryFormatter());
@@ -49,8 +50,8 @@ namespace tests.netframework
         [ExpectedException(typeof(ArgumentNullException))]
         public void Test03()
         {
-            var secret = Isolate.Fake.Instance<ISecretRetriever>();
-            Isolate.WhenCalled(() => secret.GetSecret()).WillReturn("TestingSecret898989");
+            var secret = Isolate.Fake.Instance<ISecretRetrieverAsync>();
+            Isolate.WhenCalled(() => secret.GetSecretAsync()).WillReturn(Task.FromResult("TestingSecret898989"));
 
             var hasher = new HMACSha256Hasher();
             string result = hasher.GenerateHash(null, secret, new Base64BinaryFormatter());
@@ -60,8 +61,8 @@ namespace tests.netframework
         [ExpectedException(typeof(ArgumentNullException))]
         public void Test04()
         {
-            var secret = Isolate.Fake.Instance<ISecretRetriever>();
-            Isolate.WhenCalled(() => secret.GetSecret()).WillReturn(null);
+            var secret = Isolate.Fake.Instance<ISecretRetrieverAsync>();
+            Isolate.WhenCalled(() => secret.GetSecretAsync()).WillReturn(null);
 
             var hasher = new HMACSha256Hasher();
             string result = hasher.GenerateHash("valid value", secret, new Base64BinaryFormatter());

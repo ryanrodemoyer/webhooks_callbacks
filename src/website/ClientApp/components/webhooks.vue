@@ -11,16 +11,20 @@
       <h2>Settings</h2>
       <div class="form-group">
         <label for="secret">Shared Secret</label>
-        <input class="form-control" type="text" name="secret" placeholder="your-secret-here" v-model="settings.secret" />
-      </div>
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="includeWithPayload" v-model="settings.includeHeader" />
-        <label class="form-check-label" id="includeWithPayload">include with payload</label>
+        <div class="input-group">
+          <button class="btn btn-info" v-on:click="getSecret">Get Secret</button>
+          <input class="form-control" type="text" name="secret" placeholder="your-secret-here" v-model="settings.secret" />
+        </div>
       </div>
       <div class="form-group">
         <label for="headerName">Header Name</label>
         <input class="form-control" type="text" name="headerName" placeholder="name for the header" v-model="settings.header" />
       </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="includeWithPayload" v-model="settings.includeHeader" />
+        <label class="form-check-label" id="includeWithPayload">include with payload</label>
+      </div>
+      <hr />
       <div class="form-group">
         <label for="callbackEndpoint">Callback Endpoint</label>
         <input class="form-control" type="text" name="callbackEndpoint" v-model="settings.callbackEndpoint" />
@@ -48,7 +52,7 @@
 
       <h2>Received Webhooks</h2>
 
-      <table class="table">        
+      <table class="table">
         <thead class="bg-dark text-white">
           <tr>
             <th>Id</th>
@@ -90,10 +94,11 @@
           responseMessage: ""
         },
         settings: {
-          secret: "MaryHadALittleLambLittleLamb",
+          secret: "",
           includeHeader: true,
           header: "x-payload-sig",
           callbackEndpoint: "",
+          getSecretEndpoint: "/api/callbacks/secret",
           defaultEndpoint: "/api/callbacks/weather"
         },
         payload: ""
@@ -112,6 +117,10 @@
         };
 
         this.$set(this, 'payload', JSON.stringify(temp));
+      },
+      async getSecret() {
+        let response = await this.$http.get(this.settings.getSecretEndpoint);
+        this.settings.secret = response.data;
       },
       async generateWebhook() {
         try {
@@ -144,6 +153,9 @@
         this.currentPage = page
 
         try {
+          // enable this to auto-retrieve the secret at page load
+          //await this.getSecret();
+
           let response = await this.$http.get(`/api/weatherreadings`);
           //console.log(response.data);
           this.weatherEvents = response.data;

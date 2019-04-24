@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace website.Controllers
 {
@@ -15,20 +16,20 @@ namespace website.Controllers
     public class CallbacksController : Controller
     {
         private readonly IWeatherReadingsProvider _weatherReadingsProvider;
-        private readonly ISecretRetriever _secretRetriever;
+        private readonly ISecretRetrieverAsync _secretRetrieverAsync;
         private readonly IBinaryFormatter _binaryFormatter;
         private readonly IHMACHasher _hmacHasher;
         private readonly ISignatureRetriever _signatureRetriever;
 
         public CallbacksController(
             IWeatherReadingsProvider weatherReadingsProvider,
-            ISecretRetriever secretRetriever
+            ISecretRetrieverAsync secretRetrieverAsync
             , IBinaryFormatter binaryFormatter
             , IHMACHasher hmacHasher
             , ISignatureRetriever signatureRetriever)
         {
             _weatherReadingsProvider = weatherReadingsProvider;
-            _secretRetriever = secretRetriever;
+            _secretRetrieverAsync = secretRetrieverAsync;
             _binaryFormatter = binaryFormatter;
             _hmacHasher = hmacHasher;
             _signatureRetriever = signatureRetriever;
@@ -55,7 +56,7 @@ namespace website.Controllers
             if (foundSignature)        
             {
                 // setx /M WEBHOOKS_SHARED_SECRET MaryHadALittleLambLittleLamb
-                string actualSignature = _hmacHasher.GenerateHash(input, _secretRetriever, _binaryFormatter);            
+                string actualSignature = _hmacHasher.GenerateHash(input, _secretRetrieverAsync, _binaryFormatter);            
                 if (string.Equals(expectedSignature, actualSignature))
                 {
                     var weatherReadingInput = JsonConvert.DeserializeObject<WeatherReadingInput>(input);
@@ -99,7 +100,7 @@ namespace website.Controllers
                 string input = string.Join(",", deviceId, timestamp, temperature, windspeed, humidity, barometer);
 
                 // setx /M WEBHOOKS_SHARED_SECRET MaryHadALittleLambLittleLamb
-                string actualSignature = _hmacHasher.GenerateHash(input, _secretRetriever, _binaryFormatter);
+                string actualSignature = _hmacHasher.GenerateHash(input, _secretRetrieverAsync, _binaryFormatter);
                 if (string.Equals(expectedSignature, actualSignature))
                 {
                     string data = JsonConvert.SerializeObject(new { payload = input, expectedSignature, actualSignature });
@@ -113,9 +114,12 @@ namespace website.Controllers
         }
 
         [HttpGet("[action]")]
-        public IActionResult Secret()
+        public async Task<IActionResult> Secret()
         {
-            string secret = Environment.GetEnvironmentVariable("WEBHOOKS_SHARED_SECRET", EnvironmentVariableTarget.Machine);
+            //string secret = Environment.GetEnvironmentVariable("WEBHOOKS_SHARED_SECRET", EnvironmentVariableTarget.Machine);
+            //return Ok(secret);
+
+            string secret = await _secretRetrieverAsync.GetSecretAsync();
             return Ok(secret);
         }
     }

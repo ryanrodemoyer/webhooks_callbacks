@@ -63,14 +63,30 @@ namespace bizlogic
         }
     }
 
-    public class EnvVarSecretRetriever : ISecretRetriever
+    public class DotNetSecureKeyGenerator : ISecureKeyGenerator
     {
-        public string GetSecret()
+        public string GetKey()
         {
-            string secret = Environment.GetEnvironmentVariable("WEBHOOKS_SHARED_SECRET", EnvironmentVariableTarget.Machine);
-            return secret;
+            var bytes = new byte[32]; // to get a 256-bit key, recommended since we are using SHA256 for the hash
+
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                rng.GetBytes(bytes);
+            }
+
+            string base64 = Convert.ToBase64String(bytes);
+            return base64;
         }
     }
+
+    //public class EnvVarSecretRetriever : ISecretRetrieverAsync
+    //{
+    //    public string GetSecretAsync()
+    //    {
+    //        string secret = Environment.GetEnvironmentVariable("WEBHOOKS_SHARED_SECRET", EnvironmentVariableTarget.Machine);
+    //        return secret;
+    //    }
+    //}
 
     public class Base64BinaryFormatter : IBinaryFormatter
     {
@@ -83,19 +99,19 @@ namespace bizlogic
 
     public class HMACSha256Hasher : IHMACHasher
     {
-        public string GenerateHash(string message, ISecretRetriever secretRetriever, IBinaryFormatter binaryFormatter)
+        public string GenerateHash(string message, ISecretRetrieverAsync secretRetrieverAsync, IBinaryFormatter binaryFormatter)
         {
             if (message == null)
             {
                 throw new ArgumentNullException(nameof(message));
             }
 
-            if (secretRetriever == null)
+            if (secretRetrieverAsync == null)
             {
-                throw new ArgumentNullException(nameof(secretRetriever));
+                throw new ArgumentNullException(nameof(secretRetrieverAsync));
             }
 
-            string secret = secretRetriever.GetSecret();
+            string secret = secretRetrieverAsync.GetSecretAsync().Result;
 
             byte[] secretBytes = Encoding.UTF8.GetBytes(secret);
             byte[] messageBytes = Encoding.UTF8.GetBytes(message);

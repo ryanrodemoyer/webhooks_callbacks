@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using bizlogic;
 using Microsoft.AspNetCore.Builder;
@@ -8,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.SpaServices.Webpack;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -68,15 +71,16 @@ namespace website
             services.AddSingleton<IWeatherReadingsProvider, SessionWeatherReadingsProvider>();
             services.AddSingleton<IHMACHasher, HMACSha256Hasher>();
 
-            if (_hostingEnvironment.IsDevelopment())
+            //if (_hostingEnvironment.IsDevelopment())
+            //{
+            //    //services.AddSingleton<ISecretRetrieverAsync, EnvVarSecretRetriever>();
+            //}
+            //else
             {
-                services.AddSingleton<ISecretRetriever, EnvVarSecretRetriever>();
-            }
-            else
-            {
-                services.AddSingleton<ISecretRetriever, ConfigurationSecretRetriever>();
+                services.AddSingleton<ISecretRetrieverAsync, CachedSecretRetriever>();
             }
 
+            services.AddSingleton<ISecureKeyGenerator, DotNetSecureKeyGenerator>();
             services.AddSingleton<IBinaryFormatter, Base64BinaryFormatter>();
             services.AddSingleton<ISignatureRetriever, HttpHeaderSignatureRetriever>();
         }
@@ -116,18 +120,49 @@ namespace website
         }
     }
 
-    public class ConfigurationSecretRetriever : ISecretRetriever
+    public class ConfigurationSecretRetrieverAsync : ISecretRetrieverAsync
     {
         private readonly IConfiguration _configuration;
 
-        public ConfigurationSecretRetriever(IConfiguration configuration)
+        public ConfigurationSecretRetrieverAsync(IConfiguration configuration)
         {
             _configuration = configuration;
         }
 
-        public string GetSecret()
+        public Task<string> GetSecretAsync()
         {
             string secret = _configuration["WEBHOOKS_SHARED_SECRET"];
+            return Task.FromResult(secret);
+        }
+    }
+
+    public class CachedSecretRetriever : ISecretRetrieverAsync
+    {
+        private readonly IDistributedCache _distributedCache;
+        private readonly ISecureKeyGenerator _secureKeyGenerator;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public CachedSecretRetriever(
+            IDistributedCache distributedCache
+            , ISecureKeyGenerator secureKeyGenerator
+            , IHttpContextAccessor httpContextAccessor
+        )
+        {
+            _distributedCache = distributedCache;
+            _secureKeyGenerator = secureKeyGenerator;
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        public async Task<string> GetSecretAsync()
+        {
+            string id = _httpContextAccessor.HttpContext.Session.Id;
+
+            string secret = await _distributedCache.GetStringAsync($"{id}.secret");
+            if (string.IsNullOrWhiteSpace(secret))
+            {
+                secret = _secureKeyGenerator.GetKey();
+                await _distributedCache.SetStringAsync($"{id}.secret", secret, new DistributedCacheEntryOptions {AbsoluteExpiration = DateTimeOffset.Now.AddHours(1)});
+            }
             return secret;
         }
     }
